@@ -1,0 +1,117 @@
+/*
+ * pins 模块文件夹设置
+ */
+ext {
+    pins = [
+            "p_j001"
+//            ,
+//            "p_j002",
+//            "p_j003"
+    ]
+
+    //创建pin工程,时指定的包名,manifest合并,需要包名一致
+    applicationId = "com.yunji.pins_j"
+}
+
+
+/*
+ * manifest 合并代码来自于:
+ * https://github.com/EastWoodYang/MicroModule/blob/master/micro_reference.gradle
+ */
+import com.android.manifmerger.ManifestMerger2
+import com.android.manifmerger.MergingReport
+import com.android.manifmerger.XmlDocument
+import com.android.utils.ILogger
+
+buildscript {
+    repositories {
+        jcenter()
+        google()
+    }
+    dependencies {
+        classpath "com.android.tools.build:manifest-merger:26.1.1"
+    }
+}
+
+def logger = new ILogger() {
+    @Override
+    void error(Throwable t, String msgFormat, Object... args) {
+
+    }
+
+    @Override
+    void warning(String msgFormat, Object... args) {
+
+    }
+
+    @Override
+    void info(String msgFormat, Object... args) {
+
+    }
+
+    @Override
+    void verbose(String msgFormat, Object... args) {
+
+    }
+}
+
+
+def mergeManifest = { ->
+    File mainManifestFile = new File("$projectDir/src/main/AndroidManifest.xml")
+
+    println("主  AndroidManifest.xml ," + mainManifestFile.getPath())
+
+    ManifestMerger2.MergeType mergeType = ManifestMerger2.MergeType.APPLICATION
+    XmlDocument.Type documentType = XmlDocument.Type.MAIN
+    ManifestMerger2.Invoker invoker = new ManifestMerger2.Invoker(mainManifestFile, logger, mergeType, documentType)
+    pins.each { pinName ->
+        File microManifestFile = new File("$projectDir/src/$pinName/AndroidManifest.xml")
+        if (microManifestFile.exists()) {
+            println("合并 ${pinName} 的 AndroidManifest.xml ," + microManifestFile.getPath())
+            invoker.addLibraryManifest(microManifestFile)
+        } else {
+            println("${pinName} 没有 AndroidManifest.xml 不需要合并")
+        }
+    }
+    def mergingReport = invoker.merge()
+    def moduleAndroidManifest = mergingReport.getMergedDocument(MergingReport.MergedManifestKind.MERGED)
+
+    //生成合成的Manifest.xml
+    new File("$buildDir").mkdirs()
+    def file = new File("$buildDir/AndroidManifest.xml")
+    file.createNewFile()
+    file.write(moduleAndroidManifest)
+
+}
+
+
+/**
+ * 自动创建目录文件-gradle命令方式
+ */
+task createPinsDirectory {
+
+    println("启动自动创建,Pin目录")
+
+    pins.each { pinName ->
+        if (file("$projectDir/src/${pinName}").exists()) {
+            printf("目录 ${pinName} 已经存在\n")
+        } else {
+            //指定pins-文件目录
+            String packageDir = applicationId.replace(".", "/")
+            printf("为 ${pinName} 创建目录\n")
+            // 创建java目录
+            new File("$projectDir/src/${pinName}/java/" + packageDir).mkdirs()
+            // 创建资源文件目录
+            new File("$projectDir/src/${pinName}/res/layout/").mkdirs()
+            new File("$projectDir/src/${pinName}/res/values/").mkdirs()
+        }
+    }
+}
+
+task mergeManifestTask {
+    mergeManifest()
+}
+
+preBuild.doFirst {
+    mergeManifest()
+}
