@@ -3,12 +3,21 @@ package yunji.pins.plugins.bean
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import yunji.pins.plugins.utils.Digraph
+import yunji.pins.plugins.utils.Utils
 
+
+/**
+ * 项目-微型-模块数据集合
+ */
 class MicroModuleInfo {
 
+
     Project project
+    //Main入口
     MicroModule mainMicroModule
+    //其他
     Map<String, MicroModule> includeMicroModules
+
     Map<String, String> exportMicroModules
 
     Digraph<String> dependencyGraph
@@ -51,8 +60,8 @@ class MicroModuleInfo {
 
     void setMicroModuleDependency(String target, String dependency) {
         MicroModule dependencyMicroModule = getMicroModule(dependency)
-        if(dependencyMicroModule == null) {
-            if(Utils.buildMicroModule(project, dependency) != null) {
+        if (dependencyMicroModule == null) {
+            if (Utils.buildMicroModule(project, dependency) != null) {
                 throw new GradleException("MicroModule '${target}' dependency MicroModle '${dependency}', but its not included.")
             } else {
                 throw new GradleException("MicroModule with path '${path}' could not be found in ${project.getDisplayName()}.")
@@ -60,15 +69,15 @@ class MicroModuleInfo {
         }
 
         dependencyGraph.add(target, dependency)
-        if(!dependencyGraph.isDag()) {
+        if (!dependencyGraph.isDag()) {
             throw new GradleException("Circular dependency between MicroModule '${target}' and '${dependency}'.")
         }
     }
 
     boolean hasDependency(String target, String dependency) {
         Map<String, Integer> bfsDistance = dependencyGraph.bfsDistance(target)
-        for(String key: bfsDistance.keySet()) {
-            if(key == dependency) {
+        for (String key : bfsDistance.keySet()) {
+            if (key == dependency) {
                 return bfsDistance.get(key) != null
             }
         }

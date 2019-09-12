@@ -102,6 +102,9 @@ class JPins implements Plugin<Project> {
      */
     void apply(Project project) {
 
+
+        println("-----自定义插件启动-----")
+
         this.project = project
         this.microModuleInfo = new MicroModuleInfo(project)
 

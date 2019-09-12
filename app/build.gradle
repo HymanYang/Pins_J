@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 
-apply from: "pins.gradle"
+//apply from: "pins.gradle"
 
-//apply plugin: 'jpins'
+apply plugin: 'jpins'
 
 android {
     compileSdkVersion 28

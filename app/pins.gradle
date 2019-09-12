@@ -109,7 +109,7 @@ task createPinsDirectory {
 }
 
 task mergeManifestTask {
-    mergeManifest()
+    //mergeManifest()
 }
 
 preBuild.doFirst {
