@@ -2,6 +2,8 @@ apply plugin: 'com.android.application'
 
 apply from: "pins.gradle"
 
+//apply plugin: 'jpins'
+
 android {
     compileSdkVersion 28
     defaultConfig {
@@ -35,20 +37,20 @@ android {
 
 
     // ...productFlovar, defaultConfig等其他设置...
-    sourceSets {
-        main {
-            //# jniLibs.srcDirs 等其他设置
-            pins.each { dir ->
-                java.srcDir("src/$dir/java")
-                res.srcDir("src/$dir/res")
-
-                assets.srcDirs = ["src/$dir/assets"]
-                jniLibs.srcDirs = ["src/$dir/libs"]
-            }
-            //指定合成的位置-查询更完善的方式
-            manifest.srcFile "$buildDir/AndroidManifest.xml"
-        }
-    }
+//    sourceSets {
+//        main {
+//            //# jniLibs.srcDirs 等其他设置
+//            pins.each { dir ->
+//                java.srcDir("src/$dir/java")
+//                res.srcDir("src/$dir/res")
+//
+//                assets.srcDirs = ["src/$dir/assets"]
+//                jniLibs.srcDirs = ["src/$dir/libs"]
+//            }
+//            //指定合成的位置-查询更完善的方式
+//            manifest.srcFile "$buildDir/AndroidManifest.xml"
+//        }
+//    }
 
 
 }
