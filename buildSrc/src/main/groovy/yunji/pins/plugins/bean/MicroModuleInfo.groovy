@@ -7,10 +7,9 @@ import yunji.pins.plugins.utils.Utils
 
 
 /**
- * 项目-微型-模块数据集合
+ * 项目自定义插件管理-微型-模块数据集合
  */
 class MicroModuleInfo {
-
 
     Project project
     //Main入口

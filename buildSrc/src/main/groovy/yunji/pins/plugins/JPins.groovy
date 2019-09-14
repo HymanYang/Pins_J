@@ -555,8 +555,9 @@ class JPins implements Plugin<Project> {
         if (obj == null) {
             return true
         }
-        return obj.java.srcDirs.size() == 0;
+        return obj.java.srcDirs.size() == 0
     }
+
 
     def setMainSourceSetManifest() {
         BaseExtension android = project.extensions.getByName('android')
@@ -568,8 +569,17 @@ class JPins implements Plugin<Project> {
         obj.manifest.srcFile mainManifestFile
     }
 
+
+    /**
+     * 填充src下资源
+     * @param microModule
+     * @param type
+     * @return
+     */
     def addVariantSourceSet(MicroModule microModule, def type) {
+        //模块路径
         def absolutePath = microModule.microModuleDir.absolutePath
+
         BaseExtension android = project.extensions.getByName('android')
         def obj = android.sourceSets.findByName(type)
         if (obj == null) {
@@ -588,6 +598,12 @@ class JPins implements Plugin<Project> {
         obj.renderscript.srcDir(absolutePath + "/src/${type}/rs")
     }
 
+
+    /**
+     * 置空指定模块-SourceSet
+     * @param type
+     * @return
+     */
     def clearModuleSourceSet(def type) {
         def srcDirs = []
         BaseExtension android = project.extensions.getByName('android')
@@ -606,6 +622,11 @@ class JPins implements Plugin<Project> {
         obj.renderscript.srcDirs = srcDirs
     }
 
+
+    /**
+     *
+     * @param microModule
+     */
     void applyMicroModuleScript(MicroModule microModule) {
         def microModuleBuild = new File(microModule.microModuleDir, 'build.gradle')
         if (microModuleBuild.exists()) {

@@ -10,5 +10,5 @@ dependencies {
     implementation gradleApi()
     implementation localGroovy()
 
-    implementation 'com.android.tools.build:gradle:3.5.0'
+    implementation 'com.android.tools.build:gradle:3.2.1'
 }
