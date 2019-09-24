@@ -14,6 +14,9 @@ import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import yunji.pins.plugins.bean.MicroModule
 import yunji.pins.plugins.bean.MicroModuleInfo
+import yunji.pins.plugins.extension.DefaultMicroModuleExtension
+import yunji.pins.plugins.extension.MicroModuleExtension
+import yunji.pins.plugins.extension.OnMicroModuleListener
 
 /**
  * 迷你Pins模块插件
@@ -112,39 +115,43 @@ class JPins implements Plugin<Project> {
         project.gradle.removeListener(buildListener)
         project.gradle.addBuildListener(buildListener)
 
-        if (project.gradle.getStartParameter().taskNames.size() == 0) {
-            startTaskState = NORMAL
-        } else {
-            startTaskState = ASSEMBLE_OR_GENERATE
-        }
-
-        if (startTaskState != NORMAL) {
-            project.getConfigurations().whenObjectAdded {
-                Configuration configuration = it
-                configuration.dependencies.whenObjectAdded {
-                    if (applyScriptState == APPLY_INCLUDE_MICRO_MODULE_SCRIPT) {
-                        configuration.dependencies.remove(it)
-                        return
-                    } else if (applyScriptState == APPLY_NORMAL_MICRO_MODULE_SCRIPT
-                            || applyScriptState == APPLY_EXPORT_MICRO_MODULE_SCRIPT) {
-                        return
-                    } else if (currentMicroModule == null && startTaskState == ASSEMBLE_OR_GENERATE) {
-                        return
-                    } else if (it.group != null && it.group.startsWith('com.android.tools')) {
-                        return
-                    }
-
-                    configuration.dependencies.remove(it)
-                }
-            }
-        }
-
-        //插件-创建pins模块
-//        DefaultMicroModuleExtension microModuleExtension = project.extensions.create(MicroModuleExtension, 'microModule', DefaultMicroModuleExtension, project)
-//        microModuleExtension.onMicroModuleListener = new OnMicroModuleListener() {
+//        if (project.gradle.getStartParameter().taskNames.size() == 0) {
+//            startTaskState = NORMAL
+//        } else {
+//            startTaskState = ASSEMBLE_OR_GENERATE
+//        }
 //
-//            @Override
-//            void addIncludeMicroModule(MicroModule microModule, boolean mainMicroModule) {
+//        if (startTaskState != NORMAL) {
+//            project.getConfigurations().whenObjectAdded {
+//                Configuration configuration = it
+//                configuration.dependencies.whenObjectAdded {
+//                    if (applyScriptState == APPLY_INCLUDE_MICRO_MODULE_SCRIPT) {
+//                        configuration.dependencies.remove(it)
+//                        return
+//                    } else if (applyScriptState == APPLY_NORMAL_MICRO_MODULE_SCRIPT
+//                            || applyScriptState == APPLY_EXPORT_MICRO_MODULE_SCRIPT) {
+//                        return
+//                    } else if (currentMicroModule == null && startTaskState == ASSEMBLE_OR_GENERATE) {
+//                        return
+//                    } else if (it.group != null && it.group.startsWith('com.android.tools')) {
+//                        return
+//                    }
+//
+//                    configuration.dependencies.remove(it)
+//                }
+//            }
+//        }
+
+        //插件-获取gradle配置闭包内容
+        DefaultMicroModuleExtension microModuleExtension = project.extensions.create(MicroModuleExtension, 'microModule', DefaultMicroModuleExtension, project)
+        //執行時間
+        microModuleExtension.onMicroModuleListener = new OnMicroModuleListener() {
+
+            @Override
+            void addIncludeMicroModule(MicroModule microModule, boolean mainMicroModule) {
+
+                println "----include--"+microModule.name
+
 //                if (mainMicroModule) {
 //                    microModuleInfo.setMainMicroModule(microModule)
 //                } else {
@@ -152,7 +159,7 @@ class JPins implements Plugin<Project> {
 //                }
 //
 //                if (!clearedOriginSourceSets) {
-//                    productFlavorInfo = new ProductFlavorInfo(project)
+//                    //productFlavorInfo = new ProductFlavorInfo(project)
 //                    clearedOriginSourceSets = true
 //                    clearOriginSourceSet()
 //
@@ -162,215 +169,223 @@ class JPins implements Plugin<Project> {
 //                }
 //
 //                addMicroModuleSourceSet(microModule)
+            }
+
+            @Override
+            void addExportMicroModule(String... microModulePaths) {
+                microModulePaths.each {
+                    microModuleInfo.addExportMicroModule(it)
+                }
+            }
+
+        }
+
+
+//        project.dependencies.metaClass.microModule { String path ->
+//
+//            println "path= "+path
+//            if (currentMicroModule == null || applyScriptState == APPLY_NORMAL_MICRO_MODULE_SCRIPT) {
+//                return []
 //            }
 //
-//            @Override
-//            void addExportMicroModule(String... microModulePaths) {
-//                microModulePaths.each {
-//                    microModuleInfo.addExportMicroModule(it)
+//            if (applyScriptState == APPLY_INCLUDE_MICRO_MODULE_SCRIPT) {
+//                microModuleInfo.setMicroModuleDependency(currentMicroModule.name, path)
+//                return []
+//            }
+//
+//            MicroModule microModule = microModuleInfo.getMicroModule(path)
+//
+//            def result = []
+//            if (startTaskState == ASSEMBLE_OR_GENERATE) {
+//                addMicroModuleSourceSet(microModule)
+//                applyMicroModuleScript(microModule)
+//                microModule.appliedScript = true
+//            }
+//            return result
+//        }
+//
+//
+//        //全部依赖插件
+//        project.plugins.all {
+//
+//            Class extensionClass
+//            if (it instanceof AppPlugin) {
+//                extensionClass = AppExtension
+//            } else if (it instanceof LibraryPlugin) {
+//                extensionClass = LibraryExtension
+//            } else {
+//                return
+//            }
+//
+//            //插件依赖-约束
+//            project.extensions.configure(extensionClass, new Action<? extends TestedExtension>() {
+//                @Override
+//                void execute(TestedExtension testedExtension) {
+////                    boolean isLibrary
+////                    DomainObjectSet<BaseVariant> baseVariants
+////                    if (testedExtension instanceof AppExtension) {
+////                        AppExtension appExtension = (AppExtension) testedExtension
+////                        baseVariants = appExtension.applicationVariants
+////                    } else {
+////                        LibraryExtension libraryExtension = (LibraryExtension) testedExtension
+////                        baseVariants = libraryExtension.libraryVariants
+////                        isLibrary = true
+////                    }
+//
+//                    //代码约束
+////                    baseVariants.all { BaseVariant variant ->
+////                        if (microModuleExtension.codeCheckEnabled) {
+////                            def taskNamePrefix = isLibrary ? 'package' : 'merge'
+////                            List<String> sourceFolders = new ArrayList<>()
+////                            sourceFolders.add('main')
+////                            sourceFolders.add(variant.buildType.name)
+////                            if (variant.productFlavors.size() > 0) {
+////                                sourceFolders.add(variant.name)
+////                                sourceFolders.add(variant.flavorName)
+////                                for (ProductFlavor productFlavor : variant.productFlavors) {
+////                                    sourceFolders.add(productFlavor.name)
+////                                }
+////                                checkMicroModuleBoundary(taskNamePrefix, variant.buildType.name, variant.flavorName, sourceFolders)
+////                            } else {
+////                                checkMicroModuleBoundary(taskNamePrefix, variant.buildType.name, null, sourceFolders)
+////                            }
+////                        }
+////                    }
+//                }
+//            })
+//        }
+//
+//        //环境变化切换
+//        project.afterEvaluate {
+//
+//            //microModuleExtension.onMicroModuleListener = null
+//
+//            if (microModuleInfo.mainMicroModule == null) {
+//                throw new GradleException("the main MicroModule could not be found in ${project.getDisplayName()}.")
+//            }
+//
+//            appliedLibraryPlugin = project.pluginManager.hasPlugin('com.android.library')
+//
+//            //productFlavorInfo = new ProductFlavorInfo(project)
+//
+//            applyScriptState = APPLY_INCLUDE_MICRO_MODULE_SCRIPT
+//
+//            microModuleInfo.includeMicroModules.each {
+//                MicroModule microModule = it.value
+//                microModuleInfo.dependencyGraph.add(microModule.name)
+//                applyMicroModuleScript(microModule)
+//            }
+//
+//            clearOriginSourceSet()
+//
+//            if (startTaskState == ASSEMBLE_OR_GENERATE) {
+//                applyScriptState = APPLY_EXPORT_MICRO_MODULE_SCRIPT
+//                boolean hasExportMainMicroModule = false
+//                boolean isEmpty = microModuleInfo.exportMicroModules.isEmpty()
+//                List<String> dependencySort = microModuleInfo.dependencyGraph.topSort()
+//                dependencySort.each {
+//                    if (isEmpty || microModuleInfo.exportMicroModules.containsKey(it)) {
+//                        MicroModule microModule = microModuleInfo.getMicroModule(it)
+//                        if (microModule == null) {
+//                            throw new GradleException("MicroModule with path '${it}' could not be found in ${project.getDisplayName()}.")
+//                        }
+//
+//                        if (microModule == microModuleInfo.mainMicroModule) {
+//                            hasExportMainMicroModule = true
+//                        }
+//
+//                        if (microModule.appliedScript) return
+//
+//                        addMicroModuleSourceSet(microModule)
+//                        applyMicroModuleScript(microModule)
+//                        microModule.appliedScript = true
+//                    }
+//                }
+//
+//                if (!hasExportMainMicroModule) {
+//                    throw new GradleException("the main MicroModule '${microModuleInfo.mainMicroModule.name}' is not in the export list.")
+//                }
+//            } else {
+//                applyScriptState = APPLY_NORMAL_MICRO_MODULE_SCRIPT
+//                microModuleInfo.includeMicroModules.each {
+//                    MicroModule microModule = it.value
+//                    addMicroModuleSourceSet(microModule)
+//                    applyMicroModuleScript(microModule)
 //                }
 //            }
+//            currentMicroModule = null
 //
-//        }
-
-
-        project.dependencies.metaClass.microModule { String path ->
-            if (currentMicroModule == null || applyScriptState == APPLY_NORMAL_MICRO_MODULE_SCRIPT) {
-                return []
-            }
-
-            if (applyScriptState == APPLY_INCLUDE_MICRO_MODULE_SCRIPT) {
-                microModuleInfo.setMicroModuleDependency(currentMicroModule.name, path)
-                return []
-            }
-
-            MicroModule microModule = microModuleInfo.getMicroModule(path)
-
-            def result = []
-            if (startTaskState == ASSEMBLE_OR_GENERATE) {
-                addMicroModuleSourceSet(microModule)
-                applyMicroModuleScript(microModule)
-                microModule.appliedScript = true
-            }
-            return result
-        }
-
-
-        //全部依赖插件
-        project.plugins.all {
-
-            Class extensionClass
-            if (it instanceof AppPlugin) {
-                extensionClass = AppExtension
-            } else if (it instanceof LibraryPlugin) {
-                extensionClass = LibraryExtension
-            } else {
-                return
-            }
-
-            //插件依赖-约束
-            project.extensions.configure(extensionClass, new Action<? extends TestedExtension>() {
-                @Override
-                void execute(TestedExtension testedExtension) {
-                    boolean isLibrary
-                    DomainObjectSet<BaseVariant> baseVariants
-                    if (testedExtension instanceof AppExtension) {
-                        AppExtension appExtension = (AppExtension) testedExtension
-                        baseVariants = appExtension.applicationVariants
-                    } else {
-                        LibraryExtension libraryExtension = (LibraryExtension) testedExtension
-                        baseVariants = libraryExtension.libraryVariants
-                        isLibrary = true
-                    }
-
-                    //代码约束
-//                    baseVariants.all { BaseVariant variant ->
-//                        if (microModuleExtension.codeCheckEnabled) {
-//                            def taskNamePrefix = isLibrary ? 'package' : 'merge'
-//                            List<String> sourceFolders = new ArrayList<>()
-//                            sourceFolders.add('main')
-//                            sourceFolders.add(variant.buildType.name)
-//                            if (variant.productFlavors.size() > 0) {
-//                                sourceFolders.add(variant.name)
-//                                sourceFolders.add(variant.flavorName)
-//                                for (ProductFlavor productFlavor : variant.productFlavors) {
-//                                    sourceFolders.add(productFlavor.name)
-//                                }
-//                                checkMicroModuleBoundary(taskNamePrefix, variant.buildType.name, variant.flavorName, sourceFolders)
-//                            } else {
-//                                checkMicroModuleBoundary(taskNamePrefix, variant.buildType.name, null, sourceFolders)
-//                            }
+//            generateAndroidManifest()
+//
+//
+//            //
+//            project.tasks.preBuild.doFirst {
+//                clearOriginSourceSet()
+//                if (startTaskState == ASSEMBLE_OR_GENERATE) {
+//                    microModuleInfo.includeMicroModules.each {
+//                        MicroModule microModule = it.value
+//                        if (microModule.appliedScript) {
+//                            addMicroModuleSourceSet(microModule)
 //                        }
 //                    }
-                }
-            })
-        }
-
-
-        //环境变化切换
-        project.afterEvaluate {
-
-            //microModuleExtension.onMicroModuleListener = null
-
-            if (microModuleInfo.mainMicroModule == null) {
-                throw new GradleException("the main MicroModule could not be found in ${project.getDisplayName()}.")
-            }
-
-            appliedLibraryPlugin = project.pluginManager.hasPlugin('com.android.library')
-
-            //productFlavorInfo = new ProductFlavorInfo(project)
-
-            applyScriptState = APPLY_INCLUDE_MICRO_MODULE_SCRIPT
-
-            microModuleInfo.includeMicroModules.each {
-                MicroModule microModule = it.value
-                microModuleInfo.dependencyGraph.add(microModule.name)
-                applyMicroModuleScript(microModule)
-            }
-
-            clearOriginSourceSet()
-
-            if (startTaskState == ASSEMBLE_OR_GENERATE) {
-                applyScriptState = APPLY_EXPORT_MICRO_MODULE_SCRIPT
-                boolean hasExportMainMicroModule = false
-                boolean isEmpty = microModuleInfo.exportMicroModules.isEmpty()
-                List<String> dependencySort = microModuleInfo.dependencyGraph.topSort()
-                dependencySort.each {
-                    if (isEmpty || microModuleInfo.exportMicroModules.containsKey(it)) {
-                        MicroModule microModule = microModuleInfo.getMicroModule(it)
-                        if (microModule == null) {
-                            throw new GradleException("MicroModule with path '${it}' could not be found in ${project.getDisplayName()}.")
-                        }
-
-                        if (microModule == microModuleInfo.mainMicroModule) {
-                            hasExportMainMicroModule = true
-                        }
-
-                        if (microModule.appliedScript) return
-
-                        addMicroModuleSourceSet(microModule)
-                        applyMicroModuleScript(microModule)
-                        microModule.appliedScript = true
-                    }
-                }
-
-                if (!hasExportMainMicroModule) {
-                    throw new GradleException("the main MicroModule '${microModuleInfo.mainMicroModule.name}' is not in the export list.")
-                }
-            } else {
-                applyScriptState = APPLY_NORMAL_MICRO_MODULE_SCRIPT
-                microModuleInfo.includeMicroModules.each {
-                    MicroModule microModule = it.value
-                    addMicroModuleSourceSet(microModule)
-                    applyMicroModuleScript(microModule)
-                }
-            }
-            currentMicroModule = null
-
-            generateAndroidManifest()
-
-
-            //
-            project.tasks.preBuild.doFirst {
-                clearOriginSourceSet()
-                if (startTaskState == ASSEMBLE_OR_GENERATE) {
-                    microModuleInfo.includeMicroModules.each {
-                        MicroModule microModule = it.value
-                        if (microModule.appliedScript) {
-                            addMicroModuleSourceSet(microModule)
-                        }
-                    }
-                } else {
-                    microModuleInfo.includeMicroModules.each {
-                        addMicroModuleSourceSet(it.value)
-                    }
-                }
-                generateAndroidManifest()
-            }
-        }
+//                } else {
+//                    microModuleInfo.includeMicroModules.each {
+//                        addMicroModuleSourceSet(it.value)
+//                    }
+//                }
+//                generateAndroidManifest()
+//            }
+//        }
+//    }
+//
+//
+//    def generateAndroidManifest() {
+//        if ((startTaskState == ASSEMBLE_OR_GENERATE || !microModuleInfo.exportMicroModules.isEmpty()) && isMainSourceSetEmpty()) {
+//            setMainSourceSetManifest()
+//            return
+//        }
+//        mergeAndroidManifest('main')
+//
+//        productFlavorInfo.buildTypes.each {
+//            mergeAndroidManifest(it)
+//        }
+//
+//        if (!productFlavorInfo.singleDimension) {
+//            productFlavorInfo.productFlavors.each {
+//                mergeAndroidManifest(it)
+//            }
+//        }
+//
+//        productFlavorInfo.combinedProductFlavors.each {
+//            mergeAndroidManifest(it)
+//
+//            def productFlavor = it
+//            productFlavorInfo.buildTypes.each {
+//                mergeAndroidManifest(productFlavor + Utils.upperCase(it))
+//            }
+//        }
+//
+////        def androidTest = 'androidTest'
+////        mergeAndroidManifest(androidTest)
+////        mergeAndroidManifest(androidTest + 'Debug')
+//
+//        if (!productFlavorInfo.singleDimension) {
+//            productFlavorInfo.productFlavors.each {
+//                mergeAndroidManifest(androidTest + Utils.upperCase(it))
+//            }
+//        }
+//        productFlavorInfo.combinedProductFlavors.each {
+//            mergeAndroidManifest(androidTest + Utils.upperCase(it))
+//            mergeAndroidManifest(androidTest + Utils.upperCase(it) + 'Debug')
+//        }
     }
 
 
-    def generateAndroidManifest() {
-        if ((startTaskState == ASSEMBLE_OR_GENERATE || !microModuleInfo.exportMicroModules.isEmpty()) && isMainSourceSetEmpty()) {
-            setMainSourceSetManifest()
-            return
-        }
-        mergeAndroidManifest('main')
-
-        productFlavorInfo.buildTypes.each {
-            mergeAndroidManifest(it)
-        }
-
-        if (!productFlavorInfo.singleDimension) {
-            productFlavorInfo.productFlavors.each {
-                mergeAndroidManifest(it)
-            }
-        }
-
-        productFlavorInfo.combinedProductFlavors.each {
-            mergeAndroidManifest(it)
-
-            def productFlavor = it
-            productFlavorInfo.buildTypes.each {
-                mergeAndroidManifest(productFlavor + Utils.upperCase(it))
-            }
-        }
-
-        def androidTest = 'androidTest'
-        mergeAndroidManifest(androidTest)
-        mergeAndroidManifest(androidTest + 'Debug')
-        if (!productFlavorInfo.singleDimension) {
-            productFlavorInfo.productFlavors.each {
-                mergeAndroidManifest(androidTest + Utils.upperCase(it))
-            }
-        }
-        productFlavorInfo.combinedProductFlavors.each {
-            mergeAndroidManifest(androidTest + Utils.upperCase(it))
-            mergeAndroidManifest(androidTest + Utils.upperCase(it) + 'Debug')
-        }
-    }
-
+    /**
+     * 合并 Manifest
+     * @param variantName
+     * @return
+     */
     def mergeAndroidManifest(String variantName) {
         File mainManifestFile = new File(microModuleInfo.mainMicroModule.microModuleDir, "/src/${variantName}/AndroidManifest.xml")
         if (!mainManifestFile.exists()) return
@@ -434,6 +449,7 @@ class JPins implements Plugin<Project> {
     }
 
     def addMicroModuleSourceSet(MicroModule microModule) {
+
         addVariantSourceSet(microModule, 'main')
 
         productFlavorInfo.buildTypes.each {
@@ -454,38 +470,8 @@ class JPins implements Plugin<Project> {
             }
         }
 
-        def testTypes = ['androidTest', 'test']
-        testTypes.each {
-            def testType = it
-            addVariantSourceSet(microModule, testType)
-
-            if (testType == 'test') {
-                productFlavorInfo.buildTypes.each {
-                    addVariantSourceSet(microModule, testType + Utils.upperCase(it))
-                }
-            } else {
-                addVariantSourceSet(microModule, testType + 'Debug')
-            }
-
-            if (!productFlavorInfo.singleDimension) {
-                productFlavorInfo.productFlavors.each {
-                    addVariantSourceSet(microModule, testType + Utils.upperCase(it))
-                }
-            }
-
-            productFlavorInfo.combinedProductFlavors.each {
-                def productFlavorName = testType + Utils.upperCase(it)
-                addVariantSourceSet(microModule, productFlavorName)
-
-                if (testType == 'test') {
-                    productFlavorInfo.buildTypes.each {
-                        addVariantSourceSet(microModule, productFlavorName + Utils.upperCase(it))
-                    }
-                } else {
-                    addVariantSourceSet(microModule, productFlavorName + 'Debug')
-                }
-            }
-        }
+        //def testTypes = ['androidTest', 'test']
+        // test 待填充
     }
 
 
